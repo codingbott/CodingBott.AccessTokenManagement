@@ -3,6 +3,7 @@
 
 using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +43,12 @@ public abstract class AccessTokenHandler : DelegatingHandler
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     protected abstract Task<ClientCredentialsToken> GetAccessTokenAsync(bool forceRenewal, CancellationToken cancellationToken);
+
+    /// <inheritdoc/>
+    protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return SendAsync(request, cancellationToken).GetAwaiter().GetResult();
+    }
 
     /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -85,7 +92,7 @@ public abstract class AccessTokenHandler : DelegatingHandler
     protected virtual async Task SetTokenAsync(HttpRequestMessage request, bool forceRenewal, CancellationToken cancellationToken, string? dpopNonce = null)
     {
         var token = await GetAccessTokenAsync(forceRenewal, cancellationToken).ConfigureAwait(false);
-        
+
         if (!string.IsNullOrWhiteSpace(token?.AccessToken))
         {
             _logger.LogDebug("Sending access token in request to endpoint: {url}", request.RequestUri?.AbsoluteUri.ToString());
@@ -97,13 +104,13 @@ public abstract class AccessTokenHandler : DelegatingHandler
                 // looks like this is a DPoP bound token, so try to generate the proof token
                 if (!await SetDPoPProofTokenAsync(request, token, cancellationToken, dpopNonce))
                 {
-                    // failed or opted out for this request, to fall back to Bearer 
+                    // failed or opted out for this request, to fall back to Bearer
                     scheme = AuthenticationSchemes.AuthorizationHeaderBearer;
                 }
             }
 
             // since AccessTokenType above in the token endpoint response (the token_type value) could be case insensitive, but
-            // when we send it as an Authorization header in the API request it must be case sensitive, we 
+            // when we send it as an Authorization header in the API request it must be case sensitive, we
             // are checking for that here and forcing it to the exact casing required.
             if (scheme.Equals(AuthenticationSchemes.AuthorizationHeaderBearer, System.StringComparison.OrdinalIgnoreCase))
             {
