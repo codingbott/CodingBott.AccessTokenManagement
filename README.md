@@ -1,3 +1,9 @@
+## About this fork
+
+I needed to have this lib working together with OTEL and their client uses Send and not SendAsync. 
+The original lib just supports async requests. OTEL uses sync code only :-(
+
+
 ## About Duende.AccessTokenManagement
 This is the repository for a set of .NET libraries that manage OAuth and OpenId
 Connect access tokens. These tools automatically acquire new tokens when old
